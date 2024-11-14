@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List CRUD App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <h1>To-Do List</h1>
+            <p>Manage your tasks effectively!</p>
+        </header>
+        <div class="task-input">
+            <input type="text" id="task-name" placeholder="Enter a new task">
+            <button id="add-task">Add Task</button>
+        </div>
+        <ul id="task-list"></ul>
+    </div>
+
+    <script>
+        const taskInput = document.getElementById('task-name');
+        const addButton = document.getElementById('add-task');
+        const taskList = document.getElementById('task-list');
+
+        // Fetch all tasks (READ)
+        async function fetchTasks() {
+            const res = await fetch('/tasks');
+            const tasks = await res.json();
+            taskList.innerHTML = '';
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.classList.add('task-item');
+                li.innerHTML = `
+                    <input type="checkbox" ${task.completed ? 'checked' : ''} onclick="toggleTask('${task._id}', ${!task.completed})">
+                    <span class="task-name ${task.completed ? 'completed' : ''}">${task.name}</span>
+                    <button class="edit-btn" onclick="editTask('${task._id}', '${task.name}')">Edit</button>
+                    <button class="delete-btn" onclick="deleteTask('${task._id}')">Delete</button>
+                `;
+                taskList.appendChild(li);
+            });
+        }
+
+        // Add a new task (CREATE)
+        addButton.addEventListener('click', async () => {
+            const taskName = taskInput.value.trim();
+            if (taskName) {
+                await fetch('/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: taskName })
+                });
+                taskInput.value = '';
+                fetchTasks();
+            }
+        });
+
+        // Toggle task completion (UPDATE)
+        async function toggleTask(id, completed) {
+            await fetch(`/tasks/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ completed })
+            });
+            fetchTasks();
+        }
+
+        // Edit task name (UPDATE)
+        async function editTask(id, currentName) {
+            const newName = prompt("Edit task name:", currentName);
+            if (newName && newName !== currentName) {
+                await fetch(`/tasks/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName })
+                });
+                fetchTasks();
+            }
+        }
+
+        // Delete a task (DELETE)
+        async function deleteTask(id) {
+            await fetch(`/tasks/${id}`, { method: 'DELETE' });
+            fetchTasks();
+        }
+
+        // Initial fetch of tasks
+        fetchTasks();
+    </script>
+</body>
+
+</html>
